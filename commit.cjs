@@ -6,14 +6,14 @@ const fs = require("fs");
 const git = simpleGit();
 
 // ======== SETTINGS ========
-const START_DATE = moment("2024-12-01");
-const END_DATE = moment("2024-12-31");
-const COMMITS_PER_DAY_MIN = 1;  // Min commits per day
-const COMMITS_PER_DAY_MAX = 4;  // Max commits per day
-const SKIP_WEEKENDS = true;     // true = no weekend commits
+const YEAR = 2024;
+const DAYS_TO_FILL = 20;        // Only 20 days in the year get commits
+const COMMITS_PER_DAY_MIN = 1;  // Min commits per chosen day
+const COMMITS_PER_DAY_MAX = 4;  // Max commits per chosen day
+const SKIP_WEEKENDS = true;     // true = avoid Sat/Sun
 
 const AUTHOR_NAME = "Ryan Fardeen";
-const AUTHOR_EMAIL = "ryanfardeen.a@gmail.com"; // must match GitHub verified email
+const AUTHOR_EMAIL = "ryanfardeen.a@gmail.com"; // Must be your GitHub verified email
 
 const commitMessages = [
   "Fix bug in API handler",
@@ -30,22 +30,32 @@ const commitMessages = [
 ];
 // ==========================
 
+// Helper: generate all days in the year
+const allDaysInYear = [];
+let date = moment(`${YEAR}-01-01`);
+while (date.year() === YEAR) {
+  if (!SKIP_WEEKENDS || (date.day() !== 0 && date.day() !== 6)) {
+    allDaysInYear.push(date.clone());
+  }
+  date.add(1, "day");
+}
+
+// Pick random N days
+const chosenDays = [];
+while (chosenDays.length < DAYS_TO_FILL && allDaysInYear.length > 0) {
+  const idx = Math.floor(Math.random() * allDaysInYear.length);
+  chosenDays.push(allDaysInYear.splice(idx, 1)[0]);
+}
+
 (async () => {
-  let currentDate = START_DATE.clone();
-
-  while (currentDate.isSameOrBefore(END_DATE)) {
-    if (SKIP_WEEKENDS && (currentDate.day() === 0 || currentDate.day() === 6)) {
-      currentDate.add(1, "day");
-      continue;
-    }
-
+  for (const day of chosenDays) {
     const commitsToday =
       Math.floor(Math.random() * (COMMITS_PER_DAY_MAX - COMMITS_PER_DAY_MIN + 1)) +
       COMMITS_PER_DAY_MIN;
 
     for (let i = 0; i < commitsToday; i++) {
       const message = commitMessages[Math.floor(Math.random() * commitMessages.length)];
-      const commitTime = currentDate.clone()
+      const commitTime = day.clone()
         .hour(Math.floor(Math.random() * 8) + 9) // 9am–5pm
         .minute(Math.floor(Math.random() * 60));
 
@@ -57,10 +67,8 @@ const commitMessages = [
         "--author": `${AUTHOR_NAME} <${AUTHOR_EMAIL}>`
       });
     }
-
-    currentDate.add(1, "day");
   }
 
-  console.log("✅ All commits generated for Dec 2024. Now push them:");
+  console.log(`✅ ${DAYS_TO_FILL} days of commits generated for ${YEAR}. Push to GitHub:`);
   console.log("   git push origin main");
 })();
